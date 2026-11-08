@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // 发版向导：把「改版本 → 写版本记录 → 全量校验 → 打包 → 打 tag」固定成一条命令。
 //
-//   node scripts/release.mjs 0.1.1          # 准备 0.1.1 的发版（不提交、不推送）
-//   node scripts/release.mjs 0.1.1 --dry-run # 只检查，不改文件
+//   node scripts/release.mjs 0.1.4          # 准备 0.1.4 的发版（不提交、不推送）
+//   node scripts/release.mjs 0.1.4 --dry-run # 只检查，不改文件
 //
 // 做的事：
 //  1. 校验目标版本是 semver 且严格大于当前版本；

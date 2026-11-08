@@ -112,7 +112,7 @@ dsh-collab-workbench
 
 ## 版本记录
 
-### 0.1.1
+### 0.1.4
 
 修复 Harness 0.2.2 升级后**执行通道整体不可用**：内核删除了 `sessionController.inspect`，插件的硬调用抛出 `ctx.sessionController.inspect is not a function`，又因为该错误写进了全局 `executionError` 闸门，导致所有任务（不只是出错的那个）都无法调度。
 
@@ -124,11 +124,14 @@ dsh-collab-workbench
 
 **验证记录**：A 组（升级事故复现）、B 组（主链路）在本机 Harness 0.2.2-rc.1 上实测通过；C 组（降级路径）以
 `test/host-api.test.js` 的 11 条用例覆盖，并附两次真实重启的观察记录。完整记录见
-[VERIFY-0.1.1-本地验证.md](VERIFY-0.1.1-本地验证.md)。
+[VERIFY-0.1.4-本地验证.md](VERIFY-0.1.4-本地验证.md)。
 
-**升级注意**：这是兼容性修复，无数据格式变更；0.1.0 的群组、角色、任务数据原样可用。执行引擎里被 0.2.2 打上 `blocked` 的 run，安装 0.1.1 后调一次重试或 `execution.reset` 即可恢复。
+**升级注意**：这是兼容性修复，无数据格式变更；0.1.0 的群组、角色、任务数据原样可用。执行引擎里被 0.2.2 打上 `blocked` 的 run，安装 0.1.4 后调一次重试或 `execution.reset` 即可恢复。
 
-**已知问题（不阻塞本版，进 0.1.2）**：群内发「暂停所有执行」等自然语言指令不会触发暂停（需用界面停止按钮）；决策回复后群里没有系统回显；被取代的旧失败 run 仍留在执行记录里。
+**已知问题（不阻塞本版，进下一版）**：群内发「暂停所有执行」等自然语言指令不会触发暂停（需用界面停止按钮）；决策回复后群里没有系统回显；被取代的旧失败 run 仍留在执行记录里。
+
+> 版本号说明：0.1.1–0.1.3 为内部发布版本，曾在 npm 上短暂存在后删除，现已不可安装；对外发布版本从 0.1.4 继续。
+
 
 ### 0.1.0
 
@@ -167,10 +170,10 @@ git commit -m "fix: ..."
 npm run verify                  # 2. 全绿才继续
 git switch main && git merge --no-ff fix/xxx
 
-npm run release 0.1.1           # 3. 改版本 + 插版本记录 + verify + 打 tgz
-#   → 补全 README「### 0.1.1」小节
-git add -A && git commit -m "release: 0.1.1"
-git tag -a v0.1.1 -m "v0.1.1" && git push --follow-tags
+npm run release 0.1.4           # 3. 改版本 + 插版本记录 + verify + 打 tgz
+#   → 补全 README「### 0.1.4」小节
+git add -A && git commit -m "release: 0.1.4"
+git tag -a v0.1.4 -m "v0.1.4" && git push --follow-tags
 npm publish --otp=<口令>        # 4. 发布到 npm
 ```
 
@@ -179,14 +182,14 @@ npm publish --otp=<口令>        # 4. 发布到 npm
 
 ### 发版节奏：先本地跑两天
 
-稳定版不直接 `npm publish`。0.1.1 起固定为：**本地装 tgz → 按 `VERIFY-<版本>-本地验证.md` 跑够 48 小时 → 全过再发布**。
+稳定版不直接 `npm publish`。0.1.4 起固定为：**本地装 tgz → 按 `VERIFY-<版本>-本地验证.md` 跑够 48 小时 → 全过再发布**。
 验证记录与问题清单都写在那份文件里，发版时把结论贴进 README 版本小节。
 
 ### 本机安装验证
 
 ```bash
 cd ~/.dsh/profiles/desktop
-pnpm add /绝对路径/dsh-collab-workbench-0.1.1.tgz
+pnpm add /绝对路径/dsh-collab-workbench-0.1.4.tgz
 rc=$?; [ $rc -ne 0 ] && echo "安装失败（沙箱/网络），改用 Harness 插件页安装 tgz"
 # 完全退出并重启 Harness，然后在测试群跑一遍：建任务 → 执行 → dwb_report_execution → 任务完成
 ```
