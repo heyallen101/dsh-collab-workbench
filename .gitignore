@@ -5,3 +5,5 @@ test-artifacts/
 审批修复验收记录.md
 .DS_Store
 *.log
+archive/
+archive-原始截图/

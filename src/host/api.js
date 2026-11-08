@@ -185,10 +185,12 @@ export function install(rt) {
     }),
     'tasks.update': async (payload) => ({ task: await rt.updateTask(payload.id, payload.patch ?? {}) }),
 
-    'execution.status': async (payload) => ({error:rt.executionError??null,runs:rt.executionRuns(payload?.taskId).slice(-100),
+    'execution.status': async (payload) => ({error:rt.executionError??null,diagnostics:rt.executionDiagnostics?.()??null,runs:rt.executionRuns(payload?.taskId).slice(-100),
       projects:rt.listGroups().filter(g=>!payload?.groupId || g.id===payload.groupId).map(g=>({groupId:g.id,delivery:g.delivery??null,workItemSync:g.workItemSync??null})),
       reviewOutbox:(rt.state.execution?.reviewOutbox??[]).filter(n=>!payload?.groupId || n.groupId===payload.groupId).slice(-100)}),
     'execution.retry': async (payload) => ({runs:await rt.retryExecution(payload.taskId)}),
+    // 入口故障（宿主能力缺失 / 恢复流程崩溃）后的恢复入口；只重建调度，不改任务数据。
+    'execution.reset': async () => {await rt.resetExecution?.();return {error:rt.executionError??null,diagnostics:rt.executionDiagnostics?.()??null}},
     'execution.stop': async (payload) => ({runs:await rt.stopTaskExecution(payload.taskId)}),
     'decisions.resolve': async (payload) => ({decision:await rt.resolveDecision(payload.groupId,payload.answer,payload.seq)}),
 

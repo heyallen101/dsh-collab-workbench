@@ -22,7 +22,7 @@ test('release exposes a consistent collaboration workbench identity', async () =
   const en = JSON.parse(await readFile(new URL('../locale/en.json', import.meta.url), 'utf8'))
   const client = await readFile(new URL('../client.js', import.meta.url), 'utf8')
   assert.equal(pkg.name, 'dsh-collab-workbench')
-  assert.equal(pkg.version, '0.1.0')
+  assert.equal(pkg.version, '0.1.1')
   assert.equal(zh.meta.title, '协作工作台')
   assert.equal(en.meta.title, 'Collaboration Workbench')
   assert.match(client, /label: \(\) => workbenchTitle\(\)/)
