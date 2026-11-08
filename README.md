@@ -20,7 +20,25 @@ npm 包名：`dsh-collab-workbench`。源码仓库：[wind7rui/dsh-collab-workbe
 
 ## 界面展示
 
-群内原生权限审批（明 / 暗主题，实际渲染）：
+> 以下均为深色主题下的实际渲染截图。
+
+**工作台总览**：左侧是 Harness 原生侧栏（工作台作为插件入口），中间是项目群聊，右侧是任务列表与人员。
+
+![工作台总览：侧栏、群聊、任务与人员](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/overview.png)
+
+**项目群聊**：管理员派发任务、成员完成回报、群里直接看得到交付结论。
+
+![项目群聊：任务派发与成员回报](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/group-chat.png)
+
+**任务列表**：按状态（全部 / 待办 / 进行中 / 已完成）与群组筛选，卡片上直接标注承接成员。
+
+![任务列表：状态筛选与成员标注](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/tasks.png)
+
+**人员与角色**：每个角色绑定模型与职责描述，可随时启停、编辑。
+
+![人员与角色：模型绑定与职责描述](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/people.png)
+
+**群内原生权限审批**（明 / 暗主题成对提供，便于对比）：
 
 | 浅色主题 | 深色主题 |
 | :---: | :---: |
@@ -94,6 +112,24 @@ dsh-collab-workbench
 
 ## 版本记录
 
+### 0.1.1
+
+修复 Harness 0.2.2 升级后**执行通道整体不可用**：内核删除了 `sessionController.inspect`，插件的硬调用抛出 `ctx.sessionController.inspect is not a function`，又因为该错误写进了全局 `executionError` 闸门，导致所有任务（不只是出错的那个）都无法调度。
+
+- 新增 `src/host/host-api.js` 作为**内核能力适配层**：冷读 Session 事件时优先用 0.2.1 的 `inspect`，不存在则改用 0.2.2+ 的 `events({ address })`；两者都没有时抛带版本提示的 `CapabilityMissingError`。
+- 执行通道**降级修复**：单个 run 读不出 Session 只把该 run 标 `blocked` 并写明原因，不再污染全局闸门；运行期单次失败记入 `executionLastError`；只有入口级故障（缺硬依赖、恢复流程崩溃）才停调度。
+- 启动时先做**能力探测**，缺 `sessionController` / `create` / `resolveAgent` / `agents` 时直接给出可读原因，而不是让引擎跑到一半崩。
+- 新增 RPC `execution.reset`：清除入口故障并重建调度（不清任务数据）；`execution.status` 增加 `diagnostics`（宿主能力清单、incident、最近错误），便于界面和排障。
+- 工程侧：新增 `scripts/pack-audit.mjs`（版本/semver、内置包不得进 dependencies、pack 产物完整性）与 `scripts/release.mjs`（发版向导），`npm run verify` 一条命令跑全部校验；新增 `test/host-api.test.js`，同一套执行用例同时跑在 0.2.1 与 0.2.2 两种宿主语义上。
+
+**验证记录**：A 组（升级事故复现）、B 组（主链路）在本机 Harness 0.2.2-rc.1 上实测通过；C 组（降级路径）以
+`test/host-api.test.js` 的 11 条用例覆盖，并附两次真实重启的观察记录。完整记录见
+[VERIFY-0.1.1-本地验证.md](VERIFY-0.1.1-本地验证.md)。
+
+**升级注意**：这是兼容性修复，无数据格式变更；0.1.0 的群组、角色、任务数据原样可用。执行引擎里被 0.2.2 打上 `blocked` 的 run，安装 0.1.1 后调一次重试或 `execution.reset` 即可恢复。
+
+**已知问题（不阻塞本版，进 0.1.2）**：群内发「暂停所有执行」等自然语言指令不会触发暂停（需用界面停止按钮）；决策回复后群里没有系统回显；被取代的旧失败 run 仍留在执行记录里。
+
 ### 0.1.0
 
 首个公开发布版本。包含：
@@ -107,9 +143,52 @@ dsh-collab-workbench
 以下命令用于开发工作目录；npm 安装包不包含测试目录：
 
 ```bash
-npm run build
-npm test
-npm run check
+npm run build      # 生成审批 UI 构建产物并做包一致性检查
+npm test           # 单元/集成测试（宿主替身，不连真实模型）
+npm run audit      # 打包体检：版本号、内置包、pack 产物完整性
+npm run verify     # 上面三项一起跑，CI 与发版前都用它
+```
+
+### 宿主版本兼容
+
+Harness 内核在 0.2.1 → 0.2.2 之间删除了 `sessionController.inspect`，公开方法表变化由
+`src/host/host-api.js` 集中适配，调用方不再直接写 `typeof xxx.fn`：
+
+- 冷读 Session 事件走 `readSessionEvents()`：0.2.1 用 `inspect`，0.2.2+ 用 `events({ address })`；
+- 缺能力时抛 `CapabilityMissingError`（`code = 'workbench/capability-missing'`），带「需要哪个宿主版本」；
+- 宿主接入新版本后，先跑 `capabilities()` 对比方法表，再补一条对应 `.test.js` 用例。
+
+### 发版流程
+
+```bash
+git switch -c fix/xxx           # 1. 从 main 开分支
+# ...改代码、补测试...
+git commit -m "fix: ..."
+npm run verify                  # 2. 全绿才继续
+git switch main && git merge --no-ff fix/xxx
+
+npm run release 0.1.1           # 3. 改版本 + 插版本记录 + verify + 打 tgz
+#   → 补全 README「### 0.1.1」小节
+git add -A && git commit -m "release: 0.1.1"
+git tag -a v0.1.1 -m "v0.1.1" && git push --follow-tags
+npm publish --otp=<口令>        # 4. 发布到 npm
+```
+
+`scripts/release.mjs` 只改版本号、插入版本记录占位、跑校验并打出 tgz，**不代你 commit / tag / publish**；
+`pack-audit` 会在「改了运行期代码但没升版本」「内置包进了 dependencies」「pack 产物漏文件」时直接失败。
+
+### 发版节奏：先本地跑两天
+
+稳定版不直接 `npm publish`。0.1.1 起固定为：**本地装 tgz → 按 `VERIFY-<版本>-本地验证.md` 跑够 48 小时 → 全过再发布**。
+验证记录与问题清单都写在那份文件里，发版时把结论贴进 README 版本小节。
+
+### 本机安装验证
+
+```bash
+cd ~/.dsh/profiles/desktop
+pnpm add /绝对路径/dsh-collab-workbench-0.1.1.tgz
+rc=$?; [ $rc -ne 0 ] && echo "安装失败（沙箱/网络），改用 Harness 插件页安装 tgz"
+# 完全退出并重启 Harness，然后在测试群跑一遍：建任务 → 执行 → dwb_report_execution → 任务完成
 ```
 
 Host 依赖由 Harness 提供。隔离测试使用宿主替身；测试通过不等于已完成使用者环境的真实模型、权限审批、明暗主题或冷启动验收。
