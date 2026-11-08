@@ -18,6 +18,14 @@ npm 包名：`dsh-collab-workbench`。源码仓库：[wind7rui/dsh-collab-workbe
 - **交付与记忆**：支持管理员最终交付，以及个人和团队记忆。
 - **版本检查**：关于页手动检查 npm 上的新版本，发现新版时显示侧栏云朵提示；只提示，不自动安装。
 
+## 界面展示
+
+群内原生权限审批（明 / 暗主题，实际渲染）：
+
+| 浅色主题 | 深色主题 |
+| :---: | :---: |
+| <img src="https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/approval-light.png" width="420" alt="浅色主题下的群内权限审批"> | <img src="https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/approval-dark.png" width="420" alt="深色主题下的群内权限审批"> |
+
 ## 安装
 
 本包是 **DeepSeek Harness 插件**，不是可单独运行的应用。需要已安装并可正常运行的 Harness，以及可用的模型配置。
