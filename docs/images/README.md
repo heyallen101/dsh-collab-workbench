@@ -3,7 +3,7 @@
 README「界面展示」段落引用的图片放在这里。用绝对地址引用，保证 GitHub 与 npm 页面都能显示：
 
 ```markdown
-![说明](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/<文件名>)
+![说明](https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/<文件名>)
 ```
 
 ## 命名约定

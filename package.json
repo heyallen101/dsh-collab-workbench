@@ -13,11 +13,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wind7rui/dsh-collab-workbench.git"
+    "url": "git+https://github.com/heyallen101/dsh-collab-workbench.git"
   },
-  "homepage": "https://github.com/wind7rui/dsh-collab-workbench#readme",
+  "homepage": "https://github.com/heyallen101/dsh-collab-workbench#readme",
   "bugs": {
-    "url": "https://github.com/wind7rui/dsh-collab-workbench/issues"
+    "url": "https://github.com/heyallen101/dsh-collab-workbench/issues"
   },
   "type": "module",
   "main": "index.js",

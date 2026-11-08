@@ -1,12 +1,12 @@
 # 协作工作台 · Collaboration Workbench
 
-[![CI](https://github.com/wind7rui/dsh-collab-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/wind7rui/dsh-collab-workbench/actions/workflows/ci.yml)
+[![CI](https://github.com/heyallen101/dsh-collab-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/heyallen101/dsh-collab-workbench/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-collab-workbench.svg)](https://www.npmjs.com/package/dsh-collab-workbench)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 DeepSeek Harness 的多 Agent 项目协作插件。通过自定义角色、项目群聊和任务调度，让不同职责的 Agent 在同一项目中协作，并保留执行记录与交付依据。
 
-npm 包名：`dsh-collab-workbench`。源码仓库：[wind7rui/dsh-collab-workbench](https://github.com/wind7rui/dsh-collab-workbench)。
+npm 包名：`dsh-collab-workbench`。源码仓库：[heyallen101/dsh-collab-workbench](https://github.com/heyallen101/dsh-collab-workbench)。
 
 ## 核心功能
 
@@ -24,25 +24,25 @@ npm 包名：`dsh-collab-workbench`。源码仓库：[wind7rui/dsh-collab-workbe
 
 **工作台总览**：左侧是 Harness 原生侧栏（工作台作为插件入口），中间是项目群聊，右侧是任务列表与人员。
 
-![工作台总览：侧栏、群聊、任务与人员](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/overview.png)
+![工作台总览：侧栏、群聊、任务与人员](https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/overview.png)
 
 **项目群聊**：管理员派发任务、成员完成回报、群里直接看得到交付结论。
 
-![项目群聊：任务派发与成员回报](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/group-chat.png)
+![项目群聊：任务派发与成员回报](https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/group-chat.png)
 
 **任务列表**：按状态（全部 / 待办 / 进行中 / 已完成）与群组筛选，卡片上直接标注承接成员。
 
-![任务列表：状态筛选与成员标注](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/tasks.png)
+![任务列表：状态筛选与成员标注](https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/tasks.png)
 
 **人员与角色**：每个角色绑定模型与职责描述，可随时启停、编辑。
 
-![人员与角色：模型绑定与职责描述](https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/people.png)
+![人员与角色：模型绑定与职责描述](https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/people.png)
 
 **群内原生权限审批**（明 / 暗主题成对提供，便于对比）：
 
 | 浅色主题 | 深色主题 |
 | :---: | :---: |
-| <img src="https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/approval-light.png" width="420" alt="浅色主题下的群内权限审批"> | <img src="https://raw.githubusercontent.com/wind7rui/dsh-collab-workbench/main/docs/images/approval-dark.png" width="420" alt="深色主题下的群内权限审批"> |
+| <img src="https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/approval-light.png" width="420" alt="浅色主题下的群内权限审批"> | <img src="https://raw.githubusercontent.com/heyallen101/dsh-collab-workbench/main/docs/images/approval-dark.png" width="420" alt="深色主题下的群内权限审批"> |
 
 ## 安装
 
@@ -151,6 +151,8 @@ npm test           # 单元/集成测试（宿主替身，不连真实模型）
 npm run audit      # 打包体检：版本号、内置包、pack 产物完整性
 npm run verify     # 上面三项一起跑，CI 与发版前都用它
 ```
+
+发版流程（改版本 → 校验 → npm 发布 → 打标签 → 建 Release）见 [RELEASE.md](RELEASE.md)。
 
 ### 宿主版本兼容
 
