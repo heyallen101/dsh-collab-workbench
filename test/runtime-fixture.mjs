@@ -27,7 +27,10 @@ export async function runtime(options={}){
   sessionProjections:{stateOf(session){const inbox={'next-turn':[],'next-step':[]};for(const e of session.snapshotEvents())if(e.type==='agent/inbox/spliced'){const d=e.data;inbox[d.target].splice(d.start,d.removedCount??0,...(d.inserted??[]))}return inbox}},
   sessions:{flush:async()=>true},
   sessionController:{
-   async inspect(id){const a=sessions.get(id);if(!a)throw Object.assign(new Error('session not found'),{code:'session/not-found'});return{events:a.session.snapshotEvents()}},
+   // host: 'inspect' = 0.2.1 语义（sessionController.inspect）；'events' = 0.2.2+ 语义（events({address})）。
+   ...(options.host==='events'
+     ? {async events({address},signal){const a=sessions.get(address?.sessionId);if(!a)throw Object.assign(new Error(`session "${address?.sessionId}" not found`),{code:'session/not-found'});return{records:a.session.snapshotEvents(),cursor:a.session.snapshotEvents().length,hasMore:false}}}
+     : {async inspect(id){const a=sessions.get(id);if(!a)throw Object.assign(new Error('session not found'),{code:'session/not-found'});return{events:a.session.snapshotEvents()}}}),
    async create({sessionId=randomUUID()}){if(sessions.has(sessionId))throw new Error('duplicate');const events=[];const a={id:sessionId,status:'idle',session:{id:sessionId,snapshotEvents:()=>structuredClone(events)},followup(m){if(failDelivery)throw new Error('temporary delivery failed');a.status='running';append(a,'agent/inbox/spliced',{target:'next-turn',start:0,inserted:[m]})},cancel(cause,options={}){a.status='idle';if(!options.keepInbox)for(const target of ['next-step','next-turn']){const pending=ctx.sessionProjections.stateOf(a.session)[target];if(pending.length)append(a,'agent/inbox/spliced',{target,start:0,removedCount:pending.length,inserted:[],outcome:'canceled'})}append(a,'turn/end',{reason:{kind:'aborted',reason:cause}})}};sessions.set(sessionId,a);return{sessionId}},
    async resolveAgent(id){return {agent:sessions.get(id)}},
    async list(){return{items:[...sessions.values()].map(a=>({sessionId:a.id,running:a.status==='running'}))}},
