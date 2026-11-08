@@ -43,9 +43,30 @@ EOF
 
 ## 脱敏
 
-截图左下角的 Harness 账号标识要确认已打码。当前 4 张截图为 `1XX******XX` 形式（中间已遮盖），
-可以发布；但首尾 3 位 + 2 位仍组合起来仍有识别度。若介意，截屏前先把账号显示切到完全掩码的状态，
-或对左下角做裁剪。
+截图左下角的 Harness 账号标识必须处理掉，Harness 只做中间遮盖（`1XX******XX`），首 3 位 + 末 2 位
+组合起来仍有识别度。
+
+当前 4 张图的处理方式：在缩放到 1280 宽之后，用矩形涂掉左下角 `x 0–128 / y 666–700`（Harness
+侧栏的账号行），填充色取同区域背景色 `rgb(44,49,58)`。涂完用脚本复查过该区域**无任何亮像素残留**。
+
+重新截图的处理步骤：
+
+```python
+from PIL import Image, ImageDraw
+im = Image.open('原始截图.png').convert('RGB')
+im = im.resize((1280, round(im.size[1]*1280/im.size[0])), Image.LANCZOS)
+bg = im.getpixel((126, 668))                       # 取账号行右侧的背景色
+ImageDraw.Draw(im).rectangle((0, 666, 128, 700), fill=bg)
+im.quantize(256, method=Image.MEDIANCUT, dither=Image.FLOYDSTEINBERG).save('overview.png', optimize=True)
+```
+
+复查命令（应输出 0）：
+
+```python
+from PIL import Image
+im = Image.open('overview.png').convert('RGB'); px = im.load(); w, h = im.size
+print(sum(1 for y in range(h-40, h) for x in range(0, 160) if sum(px[x, y])/3 > 90))
+```
 
 ## 关于本目录
 
