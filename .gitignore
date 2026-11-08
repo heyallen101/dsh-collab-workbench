@@ -7,3 +7,8 @@ test-artifacts/
 *.log
 archive/
 archive-原始截图/
+# 本地发版/验证记录：只在本机使用，不入库（内容含本机操作痕迹）
+CANDIDATE-*.md
+VERIFY-*.md
+# 隐私审计报告：只在本机留存，绝不入库（内容会暴露隐私排查线索）
+PRIVACY-AUDIT-*.md

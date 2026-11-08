@@ -122,9 +122,8 @@ dsh-collab-workbench
 - 新增 RPC `execution.reset`：清除入口故障并重建调度（不清任务数据）；`execution.status` 增加 `diagnostics`（宿主能力清单、incident、最近错误），便于界面和排障。
 - 工程侧：新增 `scripts/pack-audit.mjs`（版本/semver、内置包不得进 dependencies、pack 产物完整性）与 `scripts/release.mjs`（发版向导），`npm run verify` 一条命令跑全部校验；新增 `test/host-api.test.js`，同一套执行用例同时跑在 0.2.1 与 0.2.2 两种宿主语义上。
 
-**验证记录**：A 组（升级事故复现）、B 组（主链路）在本机 Harness 0.2.2-rc.1 上实测通过；C 组（降级路径）以
-`test/host-api.test.js` 的 11 条用例覆盖，并附两次真实重启的观察记录。完整记录见
-[VERIFY-0.1.4-本地验证.md](VERIFY-0.1.4-本地验证.md)。
+**验证记录**：A 组（升级事故复现）、B 组（主链路）在 Harness 0.2.2-rc.1 上实测通过；C 组（降级路径）以
+`test/host-api.test.js` 的 11 条用例覆盖，并附两次真实重启的观察记录。
 
 **升级注意**：这是兼容性修复，无数据格式变更；0.1.0 的群组、角色、任务数据原样可用。执行引擎里被 0.2.2 打上 `blocked` 的 run，安装 0.1.4 后调一次重试或 `execution.reset` 即可恢复。
 
@@ -184,8 +183,8 @@ npm publish --otp=<口令>        # 4. 发布到 npm
 
 ### 发版节奏：先本地跑两天
 
-稳定版不直接 `npm publish`。0.1.4 起固定为：**本地装 tgz → 按 `VERIFY-<版本>-本地验证.md` 跑够 48 小时 → 全过再发布**。
-验证记录与问题清单都写在那份文件里，发版时把结论贴进 README 版本小节。
+稳定版不直接 `npm publish`。0.1.4 起固定为：**本地装 tgz → 按本地验证清单跑够 48 小时 → 全过再发布**。
+验证记录与问题清单维护在本地（不入库），发版时把结论贴进 README 版本小节。
 
 ### 本机安装验证
 
