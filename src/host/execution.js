@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { ExecutionEngine } from './execution-engine.js'
+import { capabilities, missingExecutionCapabilities, readSessionEvents } from './host-api.js'
 import { MESSAGE_POLICY } from './policy.js'
 
 const brief = value => { const text = String(value ?? '').replace(/\s+/g, ' ').trim(); return text.length > 110 ? text.slice(0, 109) + '…' : text }
@@ -15,7 +16,9 @@ export function install(rt) {
   const work = new Set()
   const background = fn => {
     const launch=()=>Promise.resolve().then(fn).catch(error => {
-      rt.executionError=String(error?.message ?? error)
+      // 运行期单次失败只记账：写进最后一次错误，供 execution.status 展示，
+      // 但不进 executionError——那个闸门会把整个调度关掉。
+      rt.executionLastError={reason:String(error?.message??error),time:Date.now()}
       console.warn('[dsh-workbench] execution:', error)
     })
     const agents=ctx.get?.('agents')
@@ -50,6 +53,9 @@ export function install(rt) {
     const physical=state().runs.filter(r=>r.id!==run.id && r.sessionId && liveAgent(r.sessionId)?.status==='running').length
     return physical<engine.maxConcurrent
   }
+  // 内核冷读统一走 host-api 的适配层：0.2.1 用 inspect，0.2.2+ 用 events，缺能力时抛
+  // CapabilityMissingError（带“需要哪个宿主版本”），由调用方降级而不是让调度整体停摆。
+  const inspectSession = sessionId => readSessionEvents(ctx, sessionId, { timeoutMs: 5000 })
   const persist=async()=>{ rt.touch();await rt.saveAll() }
   const transport={
     async ensureSession(run) {
@@ -57,10 +63,10 @@ export function install(rt) {
       if(!group || group.status!=='active' || !role) throw new Error('任务所属群组或成员不可用')
       // Explicit stable identity closes the crash window between create and saving its result.
       const sessionId=`session-dwb-${run.id}`
-      try { await ctx.sessionController.inspect(sessionId,AbortSignal.timeout(5000)) }
+      try { await inspectSession(sessionId) }
       catch(error) {
         if(error?.code!=='session/not-found' && !/not.found|不存在|未找到/i.test(String(error?.message))) throw error
-        await ctx.sessionController.create({sessionId,workspaceId:await rt.ensureGroupWorkspace(group)})
+        await ctx.sessionController.create({sessionId,workspaceId:await rt.ensureGroupWorkspace(group) ?? await rt.ensureWorkspace()})
       }
       const agent=await rt.resolveAgent(sessionId)
       if(role.model) await rt.applySessionModel(sessionId,role.model)
@@ -116,6 +122,17 @@ export function install(rt) {
     if(['dwb_create_task','dwb_manage_execution','dwb_create_role','dwb_delete_role','dwb_update_role','dwb_set_role_status','dwb_create_group','dwb_delete_group','dwb_rename_group','dwb_command_new_project'].includes(exec.name)) return '当前会话负责独立任务执行；任务调度和团队管理由管理员处理。'
   })
   rt.executionRuns=taskId=>engine.list(taskId)
+  // 清除入口故障并重建执行入口（等价于“重启调度”，不影响任务/角色/群组数据）。
+  // 宿主升级或插件热替换后，界面可以调一次 execution.reset 让调度恢复，不必重启整个 Host。
+  rt.resetExecution=async()=>{
+    clearInterval(timer)
+    rt.executionError=undefined
+    rt.executionIncident=undefined
+    return rt.startExecution()
+  }
+  rt.executionDiagnostics=()=>({error:rt.executionError??null,incident:rt.executionIncident??null,
+    lastError:rt.executionLastError??null,recoveryError:rt.executionRecoveryError??null,
+    caps:capabilities(ctx)})
   const sync = async (deliver = true) => {
     let changed=false
     for(const task of rt.listTasks()) {
@@ -232,6 +249,9 @@ export function install(rt) {
   })
   rt.startExecution=()=>{
     rt.executionReady=(async()=>{
+      // 硬依赖缺失时不要进入执行引擎：只报原因，不做任何自动改状态的动作。
+      const missing=missingExecutionCapabilities(ctx)
+      if(missing.length) throw new Error(`当前宿主缺少执行所需能力：${missing.join('；')}`)
       await rt.loadAll();await rt.migrateRoleInstructions?.()
       const first=!rt.state.execution
       state()
@@ -243,19 +263,33 @@ export function install(rt) {
       }
       await persist()
       const observations=new Map()
+      // 恢复阶段是最容易踩内核 API 变化的地方：每个 run 独立 try，读不出来就把它标 blocked
+      // 并写清原因，其它 run 照常恢复——绝不把异常抛到 executionError 把整条调度关掉。
       for(const run of state().runs.filter(r=>r.sessionId && !['completed','cancelled'].includes(r.status))) {
         try {
-          const inspection=await ctx.sessionController.inspect(run.sessionId,AbortSignal.timeout(5000))
+          const inspection=await inspectSession(run.sessionId)
           observations.set(run.sessionId,{events:inspection.events.map(normalize),running:liveAgent(run.sessionId)?.status==='running'})
         } catch(error) {
           // An unreadable existing session is a recovery problem, never permission to redo it.
           run.status='blocked';run.error=`恢复读取失败：${String(error?.message??error)}`
         }
       }
-      await engine.recover(observations);await sync(false)
+      // recover 本身失败（引擎内部异常）同样只降级：已恢复的观测照常应用不了时，
+      // 保持各 run 的现状，把原因记到 executionStatus 供界面显示。
+      try {
+        await engine.recover(observations)
+      } catch(error) {
+        rt.executionRecoveryError=String(error?.message??error)
+        console.warn('[dsh-workbench] execution recover:',error)
+      }
+      await sync(false)
     })()
-    // Startup failures keep dispatch gated and stay visible through execution.status.
-    rt.executionReady.catch(error=>{rt.executionError=String(error?.message??error)})
+    // 入口失败（硬依赖缺失、恢复流程本身崩了）才停调度，并且只停调度、不改任务状态；
+    // 界面通过 execution.status 展示 reason，清除 incident 后下一次 tick 自动重试入口。
+    rt.executionReady.catch(error=>{
+      rt.executionIncident={stage:'startup',reason:String(error?.message??error),time:Date.now()}
+      rt.executionError=rt.executionIncident.reason
+    })
     timer=setInterval(()=>rt.kickExecution(),Math.max(250,rt.config.tickMs??2000));timer.unref?.()
     rt.kickExecution()
     return rt.executionReady
